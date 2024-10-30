@@ -59,9 +59,6 @@ struct sugov_cpu {
 
 	struct sched_walt_cpu_load walt_load;
 
-	unsigned long util;
-	unsigned int flags;
-
 	unsigned long		bw_dl;
 	unsigned long		min;
 	unsigned long		max;
@@ -433,7 +430,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	busy = use_pelt() && !sg_policy->need_freq_update &&
 		sugov_cpu_is_busy(sg_cpu);
 
-	sg_cpu->util = util = sugov_get_util(sg_cpu);
+	util = sugov_get_util(sg_cpu);
 	max = sg_cpu->max;
 
 	next_f = get_next_freq(sg_policy, util, max);
@@ -473,14 +470,7 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 		struct sugov_cpu *j_sg_cpu = &per_cpu(sugov_cpu, j);
 		unsigned long j_util, j_max;
 
-		/*
-		 * If the util value for all CPUs in a policy is 0, just using >
-		 * will result in a max value of 1. WALT stats can later update
-		 * the aggregated util value, causing get_next_freq() to compute
-		 * freq = max_freq * 1.25 * (util / max) for nonzero util,
-		 * leading to spurious jumps to fmax.
-		 */
-		j_util = j_sg_cpu->util;
+		j_util = sugov_get_util(j_sg_cpu);
 		j_max = j_sg_cpu->max;
 
 		if (j_util * max > j_max * util) {
@@ -502,8 +492,6 @@ sugov_update_shared(struct update_util_data *hook, u64 time, unsigned int flags)
 	if (flags & SCHED_CPUFREQ_PL)
 		return;
 
-	sg_cpu->util = sugov_get_util(sg_cpu);
-	sg_cpu->flags = flags;
 	raw_spin_lock(&sg_policy->update_lock);
 
 	sg_cpu->last_update = time;
