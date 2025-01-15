@@ -379,13 +379,14 @@ static bool set_nr_and_not_polling(struct task_struct *p)
 	set_tsk_need_resched(p);
 	return true;
 }
-
+/*
 #ifdef CONFIG_SMP
 static bool set_nr_if_polling(struct task_struct *p)
 {
 	return false;
 }
 #endif
+*/
 #endif
 
 void wake_q_add(struct wake_q_head *head, struct task_struct *task)
