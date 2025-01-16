@@ -6828,7 +6828,7 @@ static int select_idle_core(struct task_struct *p, int core, struct cpumask *cpu
 		if (!available_idle_cpu(cpu)) {
 			idle = false;
 			if (*idle_cpu == -1) {
-				if (sched_idle_cpu(cpu) && cpumask_test_cpu(cpu, p->cpus_ptr)) {
+				if (sched_idle_cpu(cpu) && cpumask_test_cpu(cpu, &p->cpus_allowed)) {
 					*idle_cpu = cpu;
 					break;
 				}
@@ -6837,7 +6837,7 @@ static int select_idle_core(struct task_struct *p, int core, struct cpumask *cpu
 			break;
 		}
 
-		if (*idle_cpu == -1 && cpumask_test_cpu(cpu, p->cpus_ptr))
+		if (*idle_cpu == -1 && cpumask_test_cpu(cpu, &p->cpus_allowed))
 			*idle_cpu = cpu;
 	}
 
@@ -6855,7 +6855,7 @@ static int select_idle_smt(struct task_struct *p, struct sched_domain *sd, int t
 {
 	int cpu;
 	for_each_cpu(cpu, cpu_smt_mask(target)) {
-		if (!cpumask_test_cpu(cpu, p->cpus_ptr) ||
+		if (!cpumask_test_cpu(cpu, &p->cpus_allowed) ||
 		    !cpumask_test_cpu(cpu, sched_domain_span(sd)))
 			continue;
 		if (available_idle_cpu(cpu) || sched_idle_cpu(cpu))
@@ -6896,6 +6896,7 @@ static int select_idle_cpu(struct task_struct *p, struct sched_domain *sd, bool 
 {
 	struct cpumask *cpus = this_cpu_cpumask_var_ptr(select_idle_mask);
 	int i, cpu, idle_cpu = -1, nr = INT_MAX;
+	int this = smp_processor_id();
 	struct sched_domain *this_sd;
 	u64 time;
 
@@ -6903,7 +6904,7 @@ static int select_idle_cpu(struct task_struct *p, struct sched_domain *sd, bool 
 	if (!this_sd)
 		return -1;
 
-	cpumask_and(cpus, sched_domain_span(sd), p->cpus_ptr);
+	cpumask_and(cpus, sched_domain_span(sd), &p->cpus_allowed);
 	
 	if (sched_feat(SIS_PROP) && !has_idle_core) {
 		u64 avg_cost, avg_idle, span_avg;
